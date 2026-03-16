@@ -1,0 +1,39 @@
+#!/bin/sh
+# Maven Wrapper script (simplified version)
+set -e
+
+# Determine MAVEN_HOME from wrapper
+MAVEN_PROJECTBASEDIR="${MAVEN_BASEDIR:-$(cd "$(dirname "$0")" && pwd)}"
+MAVEN_WRAPPER_JAR="$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.jar"
+MAVEN_WRAPPER_PROPERTIES="$MAVEN_PROJECTBASEDIR/.mvn/wrapper/maven-wrapper.properties"
+
+# Read distribution URL from properties
+if [ -f "$MAVEN_WRAPPER_PROPERTIES" ]; then
+    distributionUrl=$(grep "distributionUrl" "$MAVEN_WRAPPER_PROPERTIES" | cut -d'=' -f2-)
+fi
+
+MAVEN_HOME="$HOME/.m2/wrapper/dists/apache-maven"
+
+# Check if maven is already extracted
+if [ -d "$MAVEN_HOME" ] && [ -x "$MAVEN_HOME/bin/mvn" ]; then
+    exec "$MAVEN_HOME/bin/mvn" "$@"
+fi
+
+# Download and extract maven
+echo "Downloading Maven from $distributionUrl..."
+MAVEN_ZIP="$HOME/.m2/wrapper/dists/maven.zip"
+mkdir -p "$HOME/.m2/wrapper/dists"
+curl -o "$MAVEN_ZIP" "$distributionUrl"
+cd "$HOME/.m2/wrapper/dists"
+unzip -qo "maven.zip"
+# Find the extracted directory
+MAVEN_DIR=$(ls -d apache-maven-* 2>/dev/null | head -1)
+if [ -z "$MAVEN_DIR" ]; then
+    echo "Failed to extract Maven"
+    exit 1
+fi
+# Create symlink
+ln -sfn "$MAVEN_DIR" "$MAVEN_HOME"
+chmod +x "$MAVEN_HOME/bin/mvn"
+cd "$MAVEN_PROJECTBASEDIR"
+exec "$MAVEN_HOME/bin/mvn" "$@"
