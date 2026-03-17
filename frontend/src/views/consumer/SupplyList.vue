@@ -98,15 +98,20 @@ const handleBuy = async () => {
             <div style="font-size: 13px; color: var(--el-text-color-regular); line-height: 2;">
               <div>产地：{{ item.productionPlace }}</div>
               <div>供应方：{{ item.supplierName }}</div>
-              <div>库存：{{ item.stock }} kg</div>
+              <div>
+                库存：
+                <span v-if="Number(item.stock) <= 0" style="color:#F56C6C;font-weight:600;">已售罄</span>
+                <span v-else>{{ item.stock }} kg</span>
+              </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
                 <span style="font-size: 20px; font-weight: 700; color: #F56C6C;">¥{{ item.price }}<small
                     style="font-size: 12px; font-weight: 400;">/kg</small></span>
               </div>
               <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <el-button type="primary" size="small" @click="openBuy(item)">
+                <el-button v-if="Number(item.stock) > 0" type="primary" size="small" @click="openBuy(item)">
                   <el-icon><ShoppingCart /></el-icon> 立即购买
                 </el-button>
+                <el-button v-else type="info" size="small" disabled>已售罄</el-button>
                 <el-button size="small" @click="router.push(`/system/trace/${item.traceCode}`)">查看溯源</el-button>
               </div>
             </div>

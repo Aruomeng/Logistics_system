@@ -87,12 +87,25 @@ const handleToggleStatus = async (row: any) => {
       await offlineSupply(row.supplyId)
       ElMessage.success('已下架')
     } catch (error) {
-      return // 密码错误或取消下架
+      return
     }
   } else {
     await onlineSupply(row.supplyId)
     ElMessage.success('已上架')
   }
+  fetchData()
+}
+
+const handleRestock = async (row: any) => {
+  const { value } = await ElMessageBox.prompt(
+    `当前库存：${row.stock} kg，请输入要追加的数量`,
+    `补货 - ${row.productName}`,
+    { inputPattern: /^\d+(\.\d{1,2})?$/, inputErrorMessage: '请输入有效数字', confirmButtonText: '确认补货' }
+  )
+  const addQty = Number(value)
+  if (addQty <= 0) { ElMessage.warning('补货数量必须大于0'); return }
+  await updateSupply({ supplyId: row.supplyId, stock: Number(row.stock) + addQty })
+  ElMessage.success(`已补货 ${addQty} kg，当前库存 ${Number(row.stock) + addQty} kg`)
   fetchData()
 }
 </script>
@@ -125,7 +138,15 @@ const handleToggleStatus = async (row: any) => {
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="stock" label="库存(kg)" width="100" />
+        <el-table-column prop="stock" label="库存(kg)" width="120">
+          <template #default="{ row }">
+            <span v-if="Number(row.stock) <= 0" style="color:#F56C6C;font-weight:600;">已售罄</span>
+            <span v-else-if="Number(row.stock) < 10" style="color:#E6A23C;font-weight:600;">{{ row.stock }}
+              <el-tag size="small" type="warning" style="margin-left:4px;">库存不足</el-tag>
+            </span>
+            <span v-else>{{ row.stock }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="auditStatus" label="审核" width="90">
           <template #default="{ row }">
             <el-tag :type="(auditTagType[row.auditStatus] as any)">{{ auditStatusMap[row.auditStatus] }}</el-tag>
@@ -137,9 +158,11 @@ const handleToggleStatus = async (row: any) => {
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click="handleEdit(row)">编辑</el-button>
+            <el-button size="small" type="success" link @click="handleRestock(row)"
+              :disabled="row.auditStatus !== 1">补货</el-button>
             <el-button size="small" :type="row.status === 1 ? 'warning' : 'success'" link
               @click="handleToggleStatus(row)" :disabled="row.auditStatus !== 1">
               {{ row.status === 1 ? '下架' : '上架' }}
