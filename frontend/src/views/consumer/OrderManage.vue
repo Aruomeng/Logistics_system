@@ -10,7 +10,7 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
 
-const statusMap: Record<number, string> = { 0: '待支付', 1: '待发货', 2: '待揽收', 3: '运输中', 4: '待收货', 5: '已完成', 99: '已关闭' }
+const statusMap: Record<number, string> = { 0: '待确认', 1: '待发货', 2: '待揽收', 3: '运输中', 4: '待收货', 5: '已完成', 99: '已关闭' }
 const statusTag: Record<number, string> = { 0: 'info', 1: 'primary', 2: 'warning', 3: 'warning', 4: 'primary', 5: 'success', 99: 'danger' }
 
 // 详情弹窗
@@ -82,9 +82,9 @@ const showDetail = async (row: any) => {
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click="showDetail(row)">详情</el-button>
-            <el-button v-if="row.orderStatus === 3" size="small" type="success" link
+            <el-button v-if="row.orderStatus === 4" size="small" type="success" link
               @click="handleConfirm(row)">确认收货</el-button>
-            <el-button v-if="row.orderStatus <= 1" size="small" type="danger" link
+            <el-button v-if="row.orderStatus <= 2" size="small" type="danger" link
               @click="handleCancel(row)">取消</el-button>
           </template>
         </el-table-column>

@@ -79,6 +79,15 @@ public class OrderController {
         return Result.ok();
     }
 
+    @OperLog(module = "订单管理", type = "UPDATE", desc = "供应方确认并分配物流")
+    @PutMapping("/supplier/confirmAndAssign")
+    public Result<Void> supplierConfirmAndAssign(@RequestParam Long orderId,
+            @RequestParam Long logisticsId, @RequestParam String logisticsName) {
+        orderService.supplierConfirmAndAssign(orderId, SecurityUtil.getCurrentUserId(),
+                logisticsId, logisticsName);
+        return Result.ok();
+    }
+
     @OperLog(module = "订单管理", type = "UPDATE", desc = "供应方拒绝订单")
     @PutMapping("/supplier/reject")
     public Result<Void> supplierReject(@RequestParam Long orderId, @RequestParam(required = false) String reason) {
@@ -94,6 +103,13 @@ public class OrderController {
             @RequestParam(required = false) Integer status) {
         Page<OrderMain> result = orderService.logisticsList(page, size, SecurityUtil.getCurrentUserId(), status);
         return Result.ok(result.getRecords(), result.getTotal());
+    }
+
+    @OperLog(module = "订单管理", type = "UPDATE", desc = "物流方揽收")
+    @PutMapping("/logistics/pickup")
+    public Result<Void> logisticsPickup(@RequestParam Long orderId) {
+        orderService.logisticsPickup(orderId, SecurityUtil.getCurrentUserId());
+        return Result.ok();
     }
 
     @OperLog(module = "订单管理", type = "UPDATE", desc = "物流更新轨迹")

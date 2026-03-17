@@ -9,11 +9,15 @@ export const consumerCancel = (orderId: number) => request.put('/order/consumer/
 // ========== 供应方 ==========
 export const supplierListOrders = (params: any) => request.get('/order/supplier/list', { params })
 export const supplierConfirm = (orderId: number) => request.put('/order/supplier/confirm', null, { params: { orderId } })
+export const supplierConfirmAndAssign = (orderId: number, logisticsId: string, logisticsName: string) =>
+  request.put('/order/supplier/confirmAndAssign', null, { params: { orderId, logisticsId, logisticsName } })
 export const supplierReject = (orderId: number, reason?: string) =>
   request.put('/order/supplier/reject', null, { params: { orderId, reason } })
 
 // ========== 物流方 ==========
 export const logisticsListOrders = (params: any) => request.get('/order/logistics/list', { params })
+export const logisticsPickup = (orderId: number) =>
+  request.put('/order/logistics/pickup', null, { params: { orderId } })
 export const logisticsUpdate = (orderId: number, trackInfo: string) =>
   request.put('/order/logistics/update', null, { params: { orderId, trackInfo } })
 export const logisticsDelivered = (orderId: number) =>

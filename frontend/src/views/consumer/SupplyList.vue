@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { commonListSupply } from '../../api/supply'
+import { createOrder } from '../../api/order'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const searchForm = reactive({
@@ -31,6 +33,35 @@ const handleReset = () => {
   Object.assign(searchForm, { productName: '', category: '', productionPlace: '', minPrice: undefined, maxPrice: undefined })
   handleSearch()
 }
+
+// ========== 购买弹窗 ==========
+const buyVisible = ref(false)
+const buyItem = ref<any>({})
+const buyForm = reactive({ quantity: 1, deliveryAddress: '' })
+const subtotal = computed(() => {
+  const price = Number(buyItem.value.price) || 0
+  return (price * buyForm.quantity).toFixed(2)
+})
+
+const openBuy = (item: any) => {
+  buyItem.value = item
+  buyForm.quantity = 1
+  buyForm.deliveryAddress = ''
+  buyVisible.value = true
+}
+
+const handleBuy = async () => {
+  if (buyForm.quantity <= 0) { ElMessage.warning('请输入有效数量'); return }
+  if (!buyForm.deliveryAddress.trim()) { ElMessage.warning('请输入收货地址'); return }
+  if (buyForm.quantity > Number(buyItem.value.stock)) { ElMessage.warning('购买数量超过库存'); return }
+  await createOrder({
+    items: [{ supplyId: buyItem.value.supplyId, quantity: buyForm.quantity, productName: buyItem.value.productName }],
+    deliveryAddress: buyForm.deliveryAddress,
+  })
+  ElMessage.success('下单成功！等待供应方确认')
+  buyVisible.value = false
+  fetchData()
+}
 </script>
 
 <template>
@@ -57,7 +88,7 @@ const handleReset = () => {
       <el-row :gutter="16" v-loading="loading">
         <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in tableData" :key="item.supplyId"
           style="margin-bottom: 16px;">
-          <el-card shadow="hover" style="cursor: pointer;" @click="router.push(`/system/trace/${item.traceCode}`)">
+          <el-card shadow="hover">
             <template #header>
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-weight: 600;">{{ item.productName }}</span>
@@ -71,8 +102,12 @@ const handleReset = () => {
               <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
                 <span style="font-size: 20px; font-weight: 700; color: #F56C6C;">¥{{ item.price }}<small
                     style="font-size: 12px; font-weight: 400;">/kg</small></span>
-                <el-button type="primary" size="small"
-                  @click.stop="router.push(`/system/trace/${item.traceCode}`)">查看溯源</el-button>
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <el-button type="primary" size="small" @click="openBuy(item)">
+                  <el-icon><ShoppingCart /></el-icon> 立即购买
+                </el-button>
+                <el-button size="small" @click="router.push(`/system/trace/${item.traceCode}`)">查看溯源</el-button>
               </div>
             </div>
           </el-card>
@@ -86,5 +121,31 @@ const handleReset = () => {
           layout="prev, pager, next" @current-change="fetchData" />
       </div>
     </div>
+
+    <!-- 购买弹窗 -->
+    <el-dialog v-model="buyVisible" title="购买商品" width="500px" destroy-on-close>
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="商品名称">{{ buyItem.productName }}</el-descriptions-item>
+        <el-descriptions-item label="供应方">{{ buyItem.supplierName }}</el-descriptions-item>
+        <el-descriptions-item label="单价"><span style="color:#F56C6C;font-weight:600;">¥{{ buyItem.price }}/kg</span></el-descriptions-item>
+        <el-descriptions-item label="库存">{{ buyItem.stock }} kg</el-descriptions-item>
+      </el-descriptions>
+      <el-form style="margin-top: 20px;" label-width="90px">
+        <el-form-item label="购买数量">
+          <el-input-number v-model="buyForm.quantity" :min="0.1" :max="Number(buyItem.stock)" :precision="1"
+            :step="1" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="收货地址">
+          <el-input v-model="buyForm.deliveryAddress" placeholder="请输入详细收货地址" />
+        </el-form-item>
+        <el-form-item label="订单小计">
+          <span style="font-size: 22px; font-weight: 700; color: #F56C6C;">¥{{ subtotal }}</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="buyVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleBuy">确认下单</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>

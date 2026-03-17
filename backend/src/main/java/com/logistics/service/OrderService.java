@@ -109,8 +109,8 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
     public void supplierReject(Long orderId, Long supplierId, String reason) {
         OrderMain order = getById(orderId);
         validateOrder(order, supplierId, "SUPPLIER", 0);
-        updateStatus(orderId, 5); // 已取消
-        addTrack(orderId, 5, "供应方拒绝: " + reason, supplierId, order.getSupplierName());
+        updateStatus(orderId, 99); // 已关闭
+        addTrack(orderId, 99, "供应方拒绝: " + reason, supplierId, order.getSupplierName());
         // 恢复库存
         restoreStock(orderId);
     }
@@ -127,9 +127,42 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
         update.setOrderId(orderId);
         update.setLogisticsId(logisticsId);
         update.setLogisticsName(logisticsName);
-        update.setOrderStatus(2); // 运输中
+        update.setOrderStatus(2); // 待揽收
         updateById(update);
         addTrack(orderId, 2, "已分配物流: " + logisticsName, operatorId, "系统");
+    }
+
+    /**
+     * 供应方确认订单并分配物流（合并操作）
+     * 状态流转: 0(待确认) -> 2(待揽收)
+     */
+    @Transactional
+    public void supplierConfirmAndAssign(Long orderId, Long supplierId,
+            Long logisticsId, String logisticsName) {
+        OrderMain order = getById(orderId);
+        validateOrder(order, supplierId, "SUPPLIER", 0);
+
+        OrderMain update = new OrderMain();
+        update.setOrderId(orderId);
+        update.setOrderStatus(2); // 直接到待揽收
+        update.setLogisticsId(logisticsId);
+        update.setLogisticsName(logisticsName);
+        updateById(update);
+
+        addTrack(orderId, 1, "供应方已确认订单", supplierId, order.getSupplierName());
+        addTrack(orderId, 2, "已分配物流: " + logisticsName, supplierId, order.getSupplierName());
+    }
+
+    /**
+     * 物流方揽收
+     * 状态流转: 2(待揽收) -> 3(运输中)
+     */
+    @Transactional
+    public void logisticsPickup(Long orderId, Long logisticsId) {
+        OrderMain order = getById(orderId);
+        validateOrder(order, logisticsId, "LOGISTICS", 2);
+        updateStatus(orderId, 3);
+        addTrack(orderId, 3, "物流方已揽收，开始运输", logisticsId, order.getLogisticsName());
     }
 
     /**
@@ -138,8 +171,8 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
     @Transactional
     public void logisticsUpdate(Long orderId, Long logisticsId, String trackInfo) {
         OrderMain order = getById(orderId);
-        validateOrder(order, logisticsId, "LOGISTICS", 2);
-        addTrack(orderId, 2, trackInfo, logisticsId, order.getLogisticsName());
+        validateOrder(order, logisticsId, "LOGISTICS", 3);
+        addTrack(orderId, 3, trackInfo, logisticsId, order.getLogisticsName());
     }
 
     /**
@@ -148,9 +181,9 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
     @Transactional
     public void logisticsDelivered(Long orderId, Long logisticsId) {
         OrderMain order = getById(orderId);
-        validateOrder(order, logisticsId, "LOGISTICS", 2);
-        updateStatus(orderId, 3); // 待收货
-        addTrack(orderId, 3, "物流已送达", logisticsId, order.getLogisticsName());
+        validateOrder(order, logisticsId, "LOGISTICS", 3);
+        updateStatus(orderId, 4); // 待收货
+        addTrack(orderId, 4, "物流已送达", logisticsId, order.getLogisticsName());
     }
 
     /**
@@ -159,9 +192,9 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
     @Transactional
     public void consumerConfirm(Long orderId, Long consumerId) {
         OrderMain order = getById(orderId);
-        validateOrder(order, consumerId, "CONSUMER", 3);
-        updateStatus(orderId, 4); // 已完成
-        addTrack(orderId, 4, "消费者已确认收货", consumerId, order.getConsumerName());
+        validateOrder(order, consumerId, "CONSUMER", 4);
+        updateStatus(orderId, 5); // 已完成
+        addTrack(orderId, 5, "消费者已确认收货", consumerId, order.getConsumerName());
     }
 
     /**
@@ -172,10 +205,10 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
         OrderMain order = getById(orderId);
         if (order == null || !order.getConsumerId().equals(consumerId))
             throw new BusinessException("订单不存在");
-        if (order.getOrderStatus() > 1)
+        if (order.getOrderStatus() > 2)
             throw new BusinessException("订单已进入物流阶段，无法取消");
-        updateStatus(orderId, 5);
-        addTrack(orderId, 5, "消费者取消订单", consumerId, order.getConsumerName());
+        updateStatus(orderId, 99);
+        addTrack(orderId, 99, "消费者取消订单", consumerId, order.getConsumerName());
         restoreStock(orderId);
     }
 
@@ -255,7 +288,7 @@ public class OrderService extends ServiceImpl<OrderMainMapper, OrderMain> {
         OrderMain u = new OrderMain();
         u.setOrderId(orderId);
         u.setOrderStatus(orderStatus);
-        if (orderStatus == 4)
+        if (orderStatus == 5)
             u.setFinishTime(LocalDateTime.now());
         updateById(u);
     }

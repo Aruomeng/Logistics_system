@@ -21,6 +21,11 @@ export const modifyPassword = (data: { oldPwd: string; newPwd: string }) =>
 export const verifyPassword = (password: string) =>
   request.post('/user/password/verify', { password })
 
+// ========== 公共接口 ==========
+
+/** 获取所有物流方用户列表 */
+export const getLogisticsUsers = () => request.get('/user/logistics/list')
+
 // ========== 管理员接口 ==========
 
 /** 管理员查询用户列表 */

@@ -103,6 +103,13 @@ public class UserController {
         return Result.ok();
     }
 
+    // ========== 公共接口：获取物流方列表 ==========
+
+    @GetMapping("/logistics/list")
+    public Result<List<UserInfo>> logisticsList() {
+        return Result.ok(userService.getLogisticsUsers());
+    }
+
     // ========== 管理员用户管理 ==========
 
     @GetMapping("/admin/list")

@@ -145,6 +145,22 @@ public class UserService extends ServiceImpl<UserInfoMapper, UserInfo> {
         return true;
     }
 
+    // ========== 公共查询 ==========
+
+    /**
+     * 获取所有启用状态的物流方用户（供供应方选择）
+     */
+    public java.util.List<UserInfo> getLogisticsUsers() {
+        java.util.List<UserInfo> list = lambdaQuery()
+                .eq(UserInfo::getRoleType, 3)
+                .eq(UserInfo::getStatus, 1)
+                .eq(UserInfo::getDeleteFlag, 0)
+                .orderByDesc(UserInfo::getCreateTime)
+                .list();
+        list.forEach(u -> u.setPassword(null));
+        return list;
+    }
+
     // ========== 管理员操作 ==========
 
     /**
